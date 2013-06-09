@@ -44,8 +44,6 @@ import static org.jf.dexlib.ClassDataItem.EncodedField;
 import static org.jf.dexlib.ClassDataItem.EncodedMethod;
 
 public class ClassPath {
-    public static boolean dontLoadClassPath = false;
-
     private static ClassPath theClassPath = null;
 
     /**
@@ -263,10 +261,6 @@ public class ClassPath {
 
     @Nonnull
     public static ClassDef getClassDef(String classType, boolean createUnresolvedClassDef)  {
-        if (dontLoadClassPath) {
-            return null;
-        }
-
         ClassDef classDef = theClassPath.classDefs.get(classType);
         if (classDef == null) {
             //if it's an array class, try to create it

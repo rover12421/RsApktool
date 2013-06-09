@@ -44,11 +44,10 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
-import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import org.apache.commons.io.IOUtils;
 import org.xml.sax.SAXException;
@@ -182,11 +181,19 @@ final public class AndrolibResources {
 			DOMSource source = new DOMSource(doc);
 			StreamResult result = new StreamResult(new File(filePath));
 			transformer.transform(source, result);
-
-        } catch (SAXException | ParserConfigurationException | IOException | TransformerException ex) {
-            throw new AndrolibException(ex);
-        }
-    }
+		
+		} catch (ParserConfigurationException ex) {
+			throw new AndrolibException(ex);
+		} catch (SAXException ex) {
+			throw new AndrolibException(ex);
+		} catch (IOException ex) {
+			throw new AndrolibException(ex);
+		} catch (TransformerConfigurationException ex) {
+			throw new AndrolibException(ex);
+		} catch (TransformerException ex) {
+			throw new AndrolibException(ex);
+		}
+	}
 
 	public void adjust_package_manifest(ResTable resTable, String filePath)
 			throws AndrolibException {
@@ -194,9 +201,10 @@ final public class AndrolibResources {
 		// check if packages different, and that package is not equal to
 		// "android"
 		Map<String, String> packageInfo = resTable.getPackageInfo();
-		if ((packageInfo.get("cur_package").equalsIgnoreCase(packageInfo.get("orig_package")) || 
-		    ("android".equalsIgnoreCase(packageInfo.get("cur_package")) || 
-		        ("com.htc".equalsIgnoreCase(packageInfo.get("cur_package")))))) {
+		if ((packageInfo.get("cur_package").equalsIgnoreCase(
+				packageInfo.get("orig_package")) || ("android"
+				.equalsIgnoreCase(packageInfo.get("cur_package")) || ("com.htc"
+				.equalsIgnoreCase(packageInfo.get("cur_package")))))) {
 
 			LOGGER.info("Regular manifest package...");
 		} else {
@@ -225,51 +233,17 @@ final public class AndrolibResources {
 				StreamResult result = new StreamResult(new File(filePath));
 				transformer.transform(source, result);
 
-            } catch (SAXException | ParserConfigurationException | IOException | TransformerException ex) {
-                throw new AndrolibException(ex);
-            }
-        }
+			} catch (ParserConfigurationException ex) {
+				throw new AndrolibException(ex);
+			} catch (TransformerException ex) {
+				throw new AndrolibException(ex);
+			} catch (IOException ex) {
+				throw new AndrolibException(ex);
+			} catch (SAXException ex) {
+				throw new AndrolibException(ex);
+			}
+		}
 	}
-
-    public void remove_manifest_versions(String filePath)
-            throws AndrolibException {
-
-        File f = new File(filePath);
-
-        if (f.exists()) {
-            // remove versionCode and versionName
-            try {
-                DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-                DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-                Document doc = docBuilder.parse(filePath.toString());
-
-                Node manifest = doc.getFirstChild();
-
-                // load attr
-                NamedNodeMap attr = manifest.getAttributes();
-                Node vCode = attr.getNamedItem("android:versionCode");
-                Node vName = attr.getNamedItem("android:versionName");
-
-                // remove versionCode
-                if (vCode != null) {
-                    attr.removeNamedItem("android:versionCode");
-                }
-                if (vName != null) {
-                    attr.removeNamedItem("android:versionName");
-                }
-
-                // save manifest
-                TransformerFactory transformerFactory = TransformerFactory.newInstance();
-                Transformer transformer = transformerFactory.newTransformer();
-                DOMSource source = new DOMSource(doc);
-                StreamResult result = new StreamResult(new File(filePath));
-                transformer.transform(source, result);
-
-            } catch (SAXException | ParserConfigurationException | IOException | TransformerException ex) {
-                throw new AndrolibException(ex);
-            }
-        }
-    }
 
 	public void decode(ResTable resTable, ExtFile apkFile, File outDir)
 			throws AndrolibException {
@@ -290,13 +264,9 @@ final public class AndrolibResources {
 			fileDecoder.decodeManifest(inApk, "AndroidManifest.xml", out,
 					"AndroidManifest.xml");
 
-			// fix package (Android 4.2)
+			// fix package if needed
 			adjust_package_manifest(resTable, outDir.getAbsolutePath()
-					+ File.separator + "AndroidManifest.xml");
-
-            // Remove versionName / versionCode (aapt API 16)
-            remove_manifest_versions(outDir.getAbsolutePath()
-                    + File.separator + "/AndroidManifest.xml");
+					+ "/AndroidManifest.xml");
 
 			if (inApk.containsDir("res")) {
 				in = inApk.getDir("res");
@@ -336,13 +306,6 @@ final public class AndrolibResources {
 			mMaxSdkVersion = map.get("maxSdkVersion");
 		}
 	}
-	
-	public void setVersionInfo(Map<String, String> map) {
-	  if (map != null) {
-	    mVersionCode = map.get("versionCode").toString();
-	    mVersionName = map.get("versionName").toString();
-	  }
-	}
 
 	public void setPackageInfo(Map<String, String> map) {
 		if (map != null) {
@@ -350,48 +313,31 @@ final public class AndrolibResources {
 		}
 	}
 
-	public void setPackageId(Map<String, String> map) {
-        if (map != null) {
-            mPackageId = map.get("cur_package_id");
-        }
-	}
+	public void aaptPackage(File apkFile, File manifest, File resDir,
+			File rawDir, File assetDir, File[] include,
+			HashMap<String, Boolean> flags, String aaptPath)
+			throws AndrolibException {
 
-    public void aaptPackage(File apkFile, File manifest, File resDir,
-                            File rawDir, File assetDir, File[] include,
-                            HashMap<String, Boolean> flags, String aaptPath)
-            throws AndrolibException {
+		List<String> cmd = new ArrayList<String>();
 
-        boolean customAapt = false;
-        List<String> cmd = new ArrayList<String>();
+		// path for aapt binary
+		if (!aaptPath.isEmpty()) {
+			File aaptFile = new File(aaptPath);
+			if (aaptFile.canRead() && aaptFile.exists()) {
+				aaptFile.setExecutable(true);
+				cmd.add(aaptFile.getPath());
 
-        // path for aapt binary
-        if (!aaptPath.isEmpty()) {
-            File aaptFile = new File(aaptPath);
-            if (aaptFile.canRead() && aaptFile.exists()) {
-                aaptFile.setExecutable(true);
-                cmd.add(aaptFile.getPath());
-                customAapt = true;
-
-                if (flags.get("verbose")) {
-                    LOGGER.info(aaptFile.getPath()
-                            + " being used as aapt location.");
-                }
-            } else {
-                LOGGER.warning("aapt location could not be found. Defaulting back to default");
-
-                try {
-                    cmd.add(getAaptBinaryFile().getAbsolutePath());
-                } catch (BrutException ignored) {
-                    cmd.add("aapt");
-                }
-            }
-        } else {
-            try {
-                cmd.add(getAaptBinaryFile().getAbsolutePath());
-            } catch (BrutException ignored) {
-                cmd.add("aapt");
-            }
-        }
+				if (flags.get("verbose")) {
+					LOGGER.info(aaptFile.getPath()
+							+ " being used as aapt location.");
+				}
+			} else {
+				LOGGER.warning("aapt location could not be found. Defaulting back to default");
+				cmd.add("aapt");
+			}
+		} else {
+			cmd.add("aapt");
+		}
 
 		cmd.add("p");
 
@@ -404,13 +350,6 @@ final public class AndrolibResources {
 		if (flags.get("debug")) { // inject debuggable="true" into manifest
 			cmd.add("--debug-mode");
 		}
-
-        // force package id so that some frameworks build with correct id
-        // disable if user adds own aapt (can't know if they have this feature)
-		if (mPackageId != null && customAapt == false) {
-			cmd.add("--forced-package-id");
-			cmd.add(mPackageId);
-		}
 		if (mMinSdkVersion != null) {
 			cmd.add("--min-sdk-version");
 			cmd.add(mMinSdkVersion);
@@ -422,23 +361,10 @@ final public class AndrolibResources {
 		if (mMaxSdkVersion != null) {
 			cmd.add("--max-sdk-version");
 			cmd.add(mMaxSdkVersion);
-			
-			// if we have max sdk version, set --max-res-version
-			// so we can ignore anything over that during build.
-			cmd.add("--max-res-version");
-			cmd.add(mMaxSdkVersion);
 		}
 		if (mPackageRenamed != null) {
 			cmd.add("--rename-manifest-package");
 			cmd.add(mPackageRenamed);
-		}
-		if (mVersionCode != null) {
-		  cmd.add("--version-code");
-		  cmd.add(mVersionCode);
-		}
-		if (mVersionName != null) {
-		  cmd.add("--version-name");
-		  cmd.add(mVersionName);
 		}
 		cmd.add("-F");
 		cmd.add(apkFile.getAbsolutePath());
@@ -473,12 +399,9 @@ final public class AndrolibResources {
 		if (rawDir != null) {
 			cmd.add(rawDir.getAbsolutePath());
 		}
+
 		try {
 			OS.exec(cmd.toArray(new String[0]));
-            if (flags.get("verbose")) {
-                LOGGER.info("command ran: ");
-                LOGGER.info(cmd.toString());
-            }
 		} catch (BrutException ex) {
 			throw new AndrolibException(ex);
 		}
@@ -670,62 +593,59 @@ final public class AndrolibResources {
 		throw new CantFindFrameworkResException(id);
 	}
 
-    public void installFramework(File frameFile, String tag)
-            throws AndrolibException {
-        InputStream in = null;
-        ZipArchiveOutputStream out = null;
-        try {
-            ZipExtFile zip = new ZipExtFile(frameFile);
-            ZipArchiveEntry entry = zip.getEntry("resources.arsc");
+	public void installFramework(File frameFile, String tag)
+			throws AndrolibException {
+		InputStream in = null;
+		ZipOutputStream out = null;
+		try {
+			ZipFile zip = new ZipFile(frameFile);
+			ZipEntry entry = zip.getEntry("resources.arsc");
 
-            if (entry == null) {
-                throw new AndrolibException("Can't find resources.arsc file");
-            }
+			if (entry == null) {
+				throw new AndrolibException("Can't find resources.arsc file");
+			}
 
-            in = zip.getInputStream(entry);
-            byte[] data = IOUtils.toByteArray(in);
+			in = zip.getInputStream(entry);
+			byte[] data = IOUtils.toByteArray(in);
 
-            ARSCData arsc = ARSCDecoder.decode(new ByteArrayInputStream(data),
-                    true, true);
-            publicizeResources(data, arsc.getFlagsOffsets());
+			ARSCData arsc = ARSCDecoder.decode(new ByteArrayInputStream(data),
+					true, true);
+			publicizeResources(data, arsc.getFlagsOffsets());
 
-            File outFile = new File(getFrameworkDir(), String.valueOf(arsc
-                    .getOnePackage().getId())
-                    + (tag == null ? "" : '-' + tag)
-                    + ".apk");
+			File outFile = new File(getFrameworkDir(), String.valueOf(arsc
+					.getOnePackage().getId())
+					+ (tag == null ? "" : '-' + tag)
+					+ ".apk");
 
-            out = new ZipArchiveOutputStream(new FileOutputStream(outFile));
-            out.setMethod(ZipOutputStream.STORED);
-            CRC32 crc = new CRC32();
-            crc.update(data);
-            entry = new ZipArchiveEntry("resources.arsc");
-            entry.setSize(data.length);
-            entry.setCrc(crc.getValue());
-            out.putArchiveEntry(entry);
-            out.write(data);
-
-            out.closeArchiveEntry();
-            zip.close();
-            LOGGER.info("Framework installed to: " + outFile);
-        } catch (ZipException ex) {
-            throw new AndrolibException(ex);
-        } catch (IOException ex) {
-            throw new AndrolibException(ex);
-        } finally {
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (IOException ex) {
-                }
-            }
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (IOException ex) {
-                }
-            }
-        }
-    }
+			out = new ZipOutputStream(new FileOutputStream(outFile));
+			out.setMethod(ZipOutputStream.STORED);
+			CRC32 crc = new CRC32();
+			crc.update(data);
+			entry = new ZipEntry("resources.arsc");
+			entry.setSize(data.length);
+			entry.setCrc(crc.getValue());
+			out.putNextEntry(entry);
+			out.write(data);
+			LOGGER.info("Framework installed to: " + outFile);
+		} catch (ZipException ex) {
+			throw new AndrolibException(ex);
+		} catch (IOException ex) {
+			throw new AndrolibException(ex);
+		} finally {
+			if (in != null) {
+				try {
+					in.close();
+				} catch (IOException ex) {
+				}
+			}
+			if (out != null) {
+				try {
+					out.close();
+				} catch (IOException ex) {
+				}
+			}
+		}
+	}
 
 	public void publicizeResources(File arscFile) throws AndrolibException {
 		byte[] data = new byte[(int) arscFile.length()];
@@ -782,7 +702,7 @@ final public class AndrolibResources {
 		// if a framework path was specified on the command line, use it
 		if (sFrameworkFolder != null) {
 			path = sFrameworkFolder;
-		} else if (OSDetection.isMacOSX()) {
+		} else if (System.getProperty("os.name").equals("Mac OS X")) {
 			// store in user-home, for Mac OS X
 			path = System.getProperty("user.home") + File.separatorChar + "Library/apktool/framework";
 		} else {
@@ -800,37 +720,6 @@ final public class AndrolibResources {
 			}
 		}
 		return dir;
-	}
-	
-	/**
-	 * Using a prebuilt aapt and forcing its use, allows us to prevent bugs from older aapt's
-     * along with having a finer control over the build procedure.
-     *
-     * Aapt can still be overridden via --aapt/-a on build, but specific features will be disabled
-     *
-	 * @url https://github.com/iBotPeaches/platform_frameworks_base
-	 * @return
-	 * @throws AndrolibException
-	 */
-	public File getAaptBinaryFile() throws AndrolibException {
-	  try {
-  	  if (OSDetection.isMacOSX()) {
-  	    mAaptBinary = Jar
-  	        .getResourceAsFile("/prebuilt/aapt/macosx/aapt");
-  	  } else if (OSDetection.isUnix()) {
-  	    mAaptBinary = Jar
-  	        .getResourceAsFile("/prebuilt/aapt/linux/aapt");
-  	  } else if (OSDetection.isWindows()) {
-  	    mAaptBinary = Jar
-  	        .getResourceAsFile("/prebuilt/aapt/windows/aapt.exe");
-  	  } else {
-  	    return null;
-  	  }
-	  } catch (BrutException ex) {
-	    throw new AndrolibException(ex);
-	  }
-	  mAaptBinary.setExecutable(true);
-	  return mAaptBinary;
 	}
 
 	public File getAndroidResourcesFile() throws AndrolibException {
@@ -853,14 +742,10 @@ final public class AndrolibResources {
 	private final static Logger LOGGER = Logger
 			.getLogger(AndrolibResources.class.getName());
 
-	private String mPackageId = null;
 	private String mMinSdkVersion = null;
 	private String mMaxSdkVersion = null;
 	private String mTargetSdkVersion = null;
-	private String mVersionCode = null;
-	private String mVersionName = null;
 
 	private String mPackageRenamed = null;
-	private File mAaptBinary = null;
 
 }

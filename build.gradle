@@ -17,7 +17,7 @@
 apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'license'
-ext.apktoolversion = '2.0.0-Beta1'
+ext.apktoolversion = '1.5.3-SNAPSHOT'
 ext.fullrev = '';
 ext.gitrev_version = '';
 
@@ -38,7 +38,7 @@ class Compatibility {
 }
 
 task wrapper(type: Wrapper) {
-  gradleVersion = '1.5'
+  gradleVersion = '1.4'
 }
 
 // If anyone uses this outside of GoogleCode (Apktool) developers. I will hunt you down and hurt you.

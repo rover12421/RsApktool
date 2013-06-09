@@ -37,8 +37,6 @@ public class ResTable {
 
 	private Map<String, String> mSdkInfo = new LinkedHashMap<String, String>();
 	private Map<String, String> mPackageInfo = new LinkedHashMap<String, String>();
-	private Map<String, String> mVersionInfo = new LinkedHashMap<String, String>();
-    private Map<String, String> mUnknownFiles = new LinkedHashMap<String, String>();
 
 	public ResTable() {
 		mAndRes = null;
@@ -121,42 +119,26 @@ public class ResTable {
 	public void setFrameTag(String tag) {
 		mFrameTag = tag;
 	}
-	
-	public void clearSdkInfo() {
-	  mSdkInfo.clear();
+
+	public Map<String, String> getSdkInfo() {
+		return mSdkInfo;
 	}
 
 	public void addSdkInfo(String key, String value) {
 		mSdkInfo.put(key, value);
 	}
-	
-	public void addVersionInfo(String key, String value) {
-	  mVersionInfo.put(key, value);
+
+	public void clearSdkInfo() {
+		mSdkInfo.clear();
 	}
 
 	public void addPackageInfo(String key, String value) {
 		mPackageInfo.put(key, value);
 	}
 
-    public void addUnknownFileInfo(String file, String value) {
-        mUnknownFiles.put(file,value);
-    }
-
 	public Map<String, String> getPackageInfo() {
 		return mPackageInfo;
 	}
-	
-	public Map<String, String> getVersionInfo() {
-	  return mVersionInfo;
-	}
-	
-	public Map<String, String> getSdkInfo() {
-	  return mSdkInfo;
-	}
-
-    public Map<String, String> getUnknownFiles() {
-        return mUnknownFiles;
-    }
 
 	public boolean isPackageInfoValueSet(String key) {
 		return (mPackageInfo.containsKey(key));

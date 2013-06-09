@@ -55,7 +55,21 @@ public class ResPluralsValue extends ResBagValue implements
 
 			serializer.startTag(null, "item");
 			serializer.attribute(null, "quantity", QUANTITY_MAP[i]);
-            serializer.text(ResXmlEncoders.enumerateNonPositionalSubstitutionsIfRequired(item.encodeAsResXmlValue()));
+			if (ResXmlEncoders.hasMultipleNonPositionalSubstitutions(rawValue
+					.encodeAsResXmlValue())) {
+				serializer.text(item.encodeAsResXmlValueExt());
+			} else {
+				String recode = item.encodeAsResXmlValue();
+				// Dirty, but working fix @miuirussia
+				for (int j = 0; j < 10; j++) {
+					recode = StringUtils.replace(
+							recode,
+							"%" + Integer.toString(j) + "$"
+									+ Integer.toString(j) + "$",
+							"%" + Integer.toString(j) + "$");
+				}
+				serializer.text(recode);
+			}
 			serializer.endTag(null, "item");
 		}
 		serializer.endTag(null, "plurals");
