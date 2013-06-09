@@ -24,12 +24,13 @@ import brut.androlib.res.data.ResTable;
 import brut.androlib.res.util.ExtFile;
 import brut.common.BrutException;
 import brut.directory.DirectoryException;
+import brut.directory.ZipExtFile;
 import brut.util.OS;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
 /**
@@ -86,7 +87,7 @@ public class ApkDecoder {
 				mAndrolib.decodeSourcesRaw(mApkFile, outDir, mDebug);
 				break;
 			case DECODE_SOURCES_SMALI:
-				mAndrolib.decodeSourcesSmali(mApkFile, outDir, mDebug, mBakDeb);
+				mAndrolib.decodeSourcesSmali(mApkFile, outDir, mDebug, mDebugLinePrefix, mBakDeb);
 				break;
 			case DECODE_SOURCES_JAVA:
 				mAndrolib.decodeSourcesJava(mApkFile, outDir, mDebug);
@@ -95,44 +96,45 @@ public class ApkDecoder {
 		}
 
 		if (hasResources()) {
-
 			// read the resources.arsc checking for STORED vs DEFLATE
 			// compression
 			// this will determine whether we compress on rebuild or not.
-			JarFile jf = new JarFile(mApkFile.getAbsoluteFile());
-			JarEntry je = jf.getJarEntry("resources.arsc");
-			if (je != null) {
-				int compression = je.getMethod();
+            ZipExtFile zef = new ZipExtFile(mApkFile.getAbsolutePath());
+            ZipArchiveEntry ze = zef.getEntry("resources.arsc");
+			if (ze != null) {
+				int compression = ze.getMethod();
 				mCompressResources = (compression != ZipEntry.STORED)
 						&& (compression == ZipEntry.DEFLATED);
 			}
-			jf.close();
+            zef.close();
 
 			switch (mDecodeResources) {
-			case DECODE_RESOURCES_NONE:
-				mAndrolib.decodeResourcesRaw(mApkFile, outDir);
-				break;
-			case DECODE_RESOURCES_FULL:
-				mAndrolib.decodeResourcesFull(mApkFile, outDir, getResTable());
-				break;
-			}
+  			case DECODE_RESOURCES_NONE:
+  				mAndrolib.decodeResourcesRaw(mApkFile, outDir);
+  				break;
+  			case DECODE_RESOURCES_FULL:
+  				mAndrolib.decodeResourcesFull(mApkFile, outDir, getResTable());
+  				break;
+			} 
 		} else {
 			// if there's no resources.asrc, decode the manifest without looking
 			// up attribute references
 			if (hasManifest()) {
 				switch (mDecodeResources) {
-				case DECODE_RESOURCES_NONE:
-					mAndrolib.decodeManifestRaw(mApkFile, outDir);
-					break;
-				case DECODE_RESOURCES_FULL:
-					mAndrolib.decodeManifestFull(mApkFile, outDir,
-							getResTable());
-					break;
+  				case DECODE_RESOURCES_NONE:
+  					mAndrolib.decodeManifestRaw(mApkFile, outDir);
+  					break;
+  				case DECODE_RESOURCES_FULL:
+  					mAndrolib.decodeManifestFull(mApkFile, outDir,
+  							getResTable());
+  					break;
 				}
 			}
 		}
 
 		mAndrolib.decodeRawFiles(mApkFile, outDir);
+        mAndrolib.decodeUnknownFiles(mApkFile, outDir, mResTable);
+		mAndrolib.writeOriginalFiles(mApkFile, outDir);
 		writeMetaFile();
 	}
 
@@ -154,6 +156,10 @@ public class ApkDecoder {
 	public void setDebugMode(boolean debug) {
 		mDebug = debug;
 	}
+
+    public void setDebugLinePrefix(String debugLinePrefix) {
+        mDebugLinePrefix = debugLinePrefix;
+    }
 
 	public void setBaksmaliDebugMode(boolean bakdeb) {
 		mBakDeb = bakdeb;
@@ -244,7 +250,10 @@ public class ApkDecoder {
 			putUsesFramework(meta);
 			putSdkInfo(meta);
 			putPackageInfo(meta);
+			putVersionInfo(meta);
 			putCompressionInfo(meta);
+            putUnknownInfo(meta);
+			//meta.put("packageId", getResTable().getPackageInfo().get("cur_package_id"));
 		}
 
 		mAndrolib.writeMetaFile(mOutDir, meta);
@@ -274,25 +283,42 @@ public class ApkDecoder {
 		meta.put("usesFramework", uses);
 	}
 
-	private void putSdkInfo(Map<String, Object> meta) throws AndrolibException {
-		Map<String, String> info = getResTable().getSdkInfo();
-		if (info.size() > 0) {
-			meta.put("sdkInfo", info);
-		}
-	}
+    private void putSdkInfo(Map<String, Object> meta)
+            throws AndrolibException {
+        Map<String, String> info = getResTable().getSdkInfo();
+        if (info.size() > 0) {
+            meta.put("sdkInfo", info);
+        }
+    }
 
-	private void putPackageInfo(Map<String, Object> meta)
-			throws AndrolibException {
-		Map<String, String> info = getResTable().getPackageInfo();
-		if (info.size() > 0) {
-			meta.put("packageInfo", info);
-		}
-	}
+    private void putPackageInfo(Map<String, Object> meta)
+            throws AndrolibException {
+        Map<String, String> info = getResTable().getPackageInfo();
+        if (info.size() > 0) {
+            meta.put("packageInfo", info);
+        }
+    }
 
-	private void putCompressionInfo(Map<String, Object> meta)
-			throws AndrolibException {
-		meta.put("compressionType", getCompressionType());
-	}
+    private void putVersionInfo(Map<String, Object> meta)
+            throws AndrolibException {
+        Map<String, String> info = getResTable().getVersionInfo();
+        if (info.size() > 0) {
+            meta.put("versionInfo", info);
+        }
+    }
+
+    private void putUnknownInfo(Map<String, Object> meta)
+            throws AndrolibException {
+        Map<String,String> info = getResTable().getUnknownFiles();
+        if (info.size() > 0) {
+            meta.put("unknownFiles", info);
+        }
+    }
+
+    private void putCompressionInfo(Map<String, Object> meta)
+            throws AndrolibException {
+        meta.put("compressionType", getCompressionType());
+    }
 
 	private boolean getCompressionType() {
 		return mCompressResources;
@@ -306,6 +332,7 @@ public class ApkDecoder {
 	private short mDecodeSources = DECODE_SOURCES_SMALI;
 	private short mDecodeResources = DECODE_RESOURCES_FULL;
 	private boolean mDebug = false;
+    private String mDebugLinePrefix = "a=0;// ";
 	private boolean mForceDelete = false;
 	private String mFrameTag;
 	private boolean mKeepBrokenResources = false;

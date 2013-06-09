@@ -84,6 +84,7 @@ public class ARSCDecoder {
 		// store package
 		if (this.mResTable.isPackageInfoValueSet("cur_package") != true) {
 			this.mResTable.addPackageInfo("cur_package", packages[0].getName());
+			this.mResTable.addPackageInfo("cur_package_id", String.valueOf(packages[0].getId()));
 		}
 		return packages;
 	}
@@ -245,7 +246,8 @@ public class ARSCDecoder {
 
 		byte orientation = mIn.readByte();
 		byte touchscreen = mIn.readByte();
-		short density = mIn.readShort();
+
+		int density = mIn.readUnsignedShort();
 
 		byte keyboard = mIn.readByte();
 		byte navigation = mIn.readByte();
@@ -269,15 +271,13 @@ public class ARSCDecoder {
 
 		short screenWidthDp = 0;
 		short screenHeightDp = 0;
-
 		if (size >= 36) {
 			screenWidthDp = mIn.readShort();
 			screenHeightDp = mIn.readShort();
 		}
 
 		short layoutDirection = 0;
-		if (size >= 38 && sdkVersion >= 17
-				&& !this.mPkg.getName().equalsIgnoreCase("com.htc")) {
+		if (size >= 38) {
 			layoutDirection = mIn.readShort();
 		}
 

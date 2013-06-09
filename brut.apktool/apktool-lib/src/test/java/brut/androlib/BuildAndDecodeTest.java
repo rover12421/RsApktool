@@ -19,6 +19,8 @@ import brut.androlib.res.util.ExtFile;
 import brut.common.BrutException;
 import brut.util.OS;
 import java.io.*;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.logging.Logger;
 import org.custommonkey.xmlunit.*;
@@ -56,9 +58,8 @@ public class BuildAndDecodeTest {
 
 		LOGGER.info("Building testapp.apk...");
 		File testApk = new File(sTmpDir, "testapp.apk");
-		ExtFile blank = null;
 		new Androlib().build(sTestOrigDir, testApk,
-				BuildAndDecodeTest.returnStock(), blank, "");
+				BuildAndDecodeTest.returnStock(),"");
 
 		LOGGER.info("Decoding testapp.apk...");
 		ApkDecoder apkDecoder = new ApkDecoder(testApk);
@@ -66,11 +67,21 @@ public class BuildAndDecodeTest {
 		apkDecoder.decode();
 	}
 
+    @Test
+    public void valuesAnimsTest() throws BrutException {
+        compareValuesFiles("values-mcc001/anims.xml");
+    }
+
 	@Test
 	public void valuesArraysTest() throws BrutException {
 		compareValuesFiles("values-mcc001/arrays.xml");
 		compareValuesFiles("values-mcc002/arrays.xml");
 	}
+
+    @Test
+    public void valuesAttrsTest() throws BrutException {
+        compareValuesFiles("values/attrs.xml");
+    }
 
 	@Test
 	public void valuesBoolsTest() throws BrutException {
@@ -87,6 +98,11 @@ public class BuildAndDecodeTest {
 		compareValuesFiles("values-mcc001/dimens.xml");
 	}
 
+    @Test
+    public void valuesDrawablesTest() throws BrutException {
+        compareValuesFiles("values-mcc001/drawables.xml");
+    }
+
 	@Test
 	public void valuesIdsTest() throws BrutException {
 		compareValuesFiles("values-mcc001/ids.xml");
@@ -97,10 +113,25 @@ public class BuildAndDecodeTest {
 		compareValuesFiles("values-mcc001/integers.xml");
 	}
 
+    @Test
+    public void valuesLayoutsTest() throws BrutException {
+        compareValuesFiles("values-mcc001/layouts.xml");
+    }
+
+    @Test
+    public void xmlPluralsTest() throws BrutException {
+        compareValuesFiles("values-mcc001/plurals.xml");
+    }
+
 	@Test
 	public void valuesStringsTest() throws BrutException {
 		compareValuesFiles("values-mcc001/strings.xml");
 	}
+
+    @Test
+    public void valuesStylesTest() throws BrutException {
+        compareValuesFiles("values-mcc001/styles.xml");
+    }
 
 	@Test
 	public void valuesReferencesTest() throws BrutException {
@@ -131,6 +162,51 @@ public class BuildAndDecodeTest {
 				+ "-navhidden-dpad/strings.xml");
 	}
 
+    @Test
+    public void drawableNoDpiTest() throws BrutException, IOException {
+        compareResFolder("drawable-nodpi");
+    }
+
+    @Test
+    public void drawableNumberedDpiTest() throws BrutException, IOException {
+        compareResFolder("drawable-534dpi");
+    }
+
+    @Test
+    public void drawableLdpiTest() throws BrutException, IOException {
+        compareResFolder("drawable-ldpi");
+    }
+
+    @Test
+    public void drawableMdpiTest() throws BrutException, IOException {
+        compareResFolder("drawable-mdpi");
+    }
+
+    @Test
+    public void drawableTvdpiTest() throws BrutException, IOException {
+        compareResFolder("drawable-tvdpi");
+    }
+
+    @Test
+    public void drawableXhdpiTest() throws BrutException, IOException {
+        compareResFolder("drawable-xhdpi");
+    }
+
+    @Test
+    public void drawableXxhdpiTest() throws BrutException, IOException {
+        compareResFolder("drawable-xxhdpi");
+    }
+
+    @Test
+    public void resRawTest() throws BrutException, IOException {
+        compareResFolder("raw");
+    }
+
+    @Test
+    public void libsTest() throws BrutException, IOException {
+        compareLibsFolder("libs");
+    }
+
 	private static boolean isAaptPresent() throws Exception {
 		boolean result = true;
 		try {
@@ -145,6 +221,49 @@ public class BuildAndDecodeTest {
 		}
 		return result;
 	}
+
+    private void compareBinaryFolder(String path, boolean res) throws BrutException, IOException {
+
+        String tmp = "";
+        if (res) {
+            tmp = File.separatorChar + "res" + File.separatorChar;
+        }
+
+        Files.walkFileTree(Paths.get(sTestOrigDir.toPath() + tmp +  path), new SimpleFileVisitor<Path>() {
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+
+                // hacky fix - load test by changing name of control
+                File control = file.toFile();
+                File test =  new File(file.toString().replace("testapp-orig", "testapp-new"));
+
+                if (test.isFile()) {
+                    if (control.hashCode() != test.hashCode()) {
+                        sResult = false;
+                        return FileVisitResult.TERMINATE;
+                    }
+                }   else {
+                    sResult = false;
+                    return FileVisitResult.TERMINATE;
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+        });
+    }
+
+    private boolean compareResFolder(String path) throws BrutException, IOException {
+        sResult = true;
+        compareBinaryFolder(path, true);
+        return sResult;
+    }
+
+    private boolean compareLibsFolder(String path) throws BrutException, IOException {
+        sResult = true;
+        compareBinaryFolder(File.separatorChar + path,false);
+        return sResult;
+    }
 
 	private void compareValuesFiles(String path) throws BrutException {
 		compareXmlFiles("res/" + path, new ElementNameAndAttributeQualifier(
@@ -182,9 +301,9 @@ public class BuildAndDecodeTest {
 		tmp.put("forceBuildAll", false);
 		tmp.put("debug", false);
 		tmp.put("verbose", false);
-		tmp.put("injectOriginal", false);
 		tmp.put("framework", false);
 		tmp.put("update", false);
+		tmp.put("copyOriginal", false);
 
 		return tmp;
 	}
@@ -192,6 +311,8 @@ public class BuildAndDecodeTest {
 	private static ExtFile sTmpDir;
 	private static ExtFile sTestOrigDir;
 	private static ExtFile sTestNewDir;
+
+    private static boolean sResult;
 
 	private final static Logger LOGGER = Logger
 			.getLogger(BuildAndDecodeTest.class.getName());
