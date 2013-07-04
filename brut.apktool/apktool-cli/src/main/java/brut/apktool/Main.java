@@ -39,6 +39,11 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 
+import complile.obfascator.Trap;
+import complile.obfascator.TrapPicker;
+
+import ds.tree.RadixTree;
+
 /**
  * @author Ryszard Wiśniewski <brut.alll@gmail.com>
  * @author Connor Tumbleson <connor.tumbleson@gmail.com>
@@ -56,6 +61,7 @@ public class Main {
 
         // load options
         _Options();
+        
 
         try {
             commandLine = parser.parse(allOptions, args, false);
@@ -184,6 +190,7 @@ public class Main {
 
     }
 
+    
     private static void cmdBuild(CommandLine cli) throws BrutException {
         String[] args = cli.getArgs();
         String appDirName = args.length < 2 ? "." : args[1];
@@ -219,12 +226,20 @@ public class Main {
         if (cli.hasOption("p") || cli.hasOption("frame-path")) {
             instance.setFrameworkFolder(cli.getOptionValue("p"));
         }
+        if (cli.hasOption("z") || cli.hasOption("trap")) {
+        	TrapPicker picker = new TrapPicker();
+            picker.pickFieldFile(appDirName);
+            
+        }
         if (cli.hasOption("o") || cli.hasOption("output")) {
             outFile = new File(cli.getOptionValue("o"));
         } else {
             outFile = null;
         }
 
+        
+        
+        
         // try and build apk
         instance.build(new File(appDirName), outFile, flags,mAaptPath);
     }
@@ -276,6 +291,10 @@ public class Main {
         Option noResOption = OptionBuilder.withLongOpt("no-res")
                 .withDescription("Do not decode resources.")
                 .create("r");
+        
+        Option trapOption = OptionBuilder.withLongOpt("trap")
+        		.withDescription("obfascator a random field")
+        		.create("z");
 
         Option debugDecOption = OptionBuilder.withLongOpt("debug")
                 .withDescription("Decode in debug mode. Check project page for more info.")
@@ -372,6 +391,7 @@ public class Main {
             BuildOptions.addOption(debugBuiOption);
             BuildOptions.addOption(aaptOption);
             BuildOptions.addOption(originalOption);
+           
         }
 
         // add global options
@@ -390,6 +410,7 @@ public class Main {
         BuildOptions.addOption(outputBuiOption);
         BuildOptions.addOption(frameDirOption);
         BuildOptions.addOption(forceBuiOption);
+        BuildOptions.addOption(trapOption);
 
         // add basic framework options
         frameOptions.addOption(tagOption);

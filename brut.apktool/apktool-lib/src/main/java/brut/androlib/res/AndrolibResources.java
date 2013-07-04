@@ -407,10 +407,10 @@ final public class AndrolibResources {
 
         // force package id so that some frameworks build with correct id
         // disable if user adds own aapt (can't know if they have this feature)
-		if (mPackageId != null && customAapt == false) {
-			cmd.add("--forced-package-id");
-			cmd.add(mPackageId);
-		}
+//		if (mPackageId != null && customAapt == false) {
+//			cmd.add("--forced-package-id");
+//			cmd.add(mPackageId);
+//		}
 		if (mMinSdkVersion != null) {
 			cmd.add("--min-sdk-version");
 			cmd.add(mMinSdkVersion);
@@ -474,7 +474,12 @@ final public class AndrolibResources {
 			cmd.add(rawDir.getAbsolutePath());
 		}
 		try {
+			
+			
 			OS.exec(cmd.toArray(new String[0]));
+			
+			
+			
             if (flags.get("verbose")) {
                 LOGGER.info("command ran: ");
                 LOGGER.info(cmd.toString());

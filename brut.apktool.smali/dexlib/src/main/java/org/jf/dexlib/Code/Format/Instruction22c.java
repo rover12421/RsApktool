@@ -28,6 +28,8 @@
 
 package org.jf.dexlib.Code.Format;
 
+import java.util.Random;
+
 import org.jf.dexlib.Code.Instruction;
 import org.jf.dexlib.Code.InstructionWithReference;
 import org.jf.dexlib.Code.Opcode;
@@ -36,6 +38,10 @@ import org.jf.dexlib.DexFile;
 import org.jf.dexlib.Item;
 import org.jf.dexlib.Util.AnnotatedOutput;
 import org.jf.dexlib.Util.NumberUtils;
+
+import complile.obfascator.TrapPicker;
+
+import sun.applet.Main;
 
 public class Instruction22c extends InstructionWithReference implements TwoRegisterInstruction,
         InstructionWithJumboVariant {
@@ -72,9 +78,18 @@ public class Instruction22c extends InstructionWithReference implements TwoRegis
             }
         }
 
-        out.writeByte(opcode.value);
-        out.writeByte((regB << 4) | regA);
-        out.writeShort(getReferencedItem().getIndex());
+        if(TrapPicker.mTrap!=null && TrapPicker.mTrap.getConciseIdentity().equals(getReferencedItem().getConciseIdentity())){
+	
+        	out.writeByte(opcode.value);
+        	out.writeByte((regB << 4) | regA);
+        	out.writeShort(getReferencedItem().getOffset()+1);
+        	System.out.println(getReferencedItem().getOffset());
+        }else {
+			
+        	out.writeByte(opcode.value);
+        	out.writeByte((regB << 4) | regA);
+        	out.writeShort(getReferencedItem().getIndex());
+		}        
     }
 
     public Format getFormat() {

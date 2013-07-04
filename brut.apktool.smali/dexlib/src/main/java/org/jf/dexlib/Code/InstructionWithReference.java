@@ -76,6 +76,9 @@ public abstract class InstructionWithReference extends Instruction {
     private void lookupReferencedItem(DexFile dexFile, Opcode opcode, int itemIndex) {
         switch (referenceType) {
             case field:
+            	if(itemIndex>=dexFile.FieldIdsSection.getItems().size()){
+            		itemIndex = 0;
+            	}
                 referencedItem = dexFile.FieldIdsSection.getItemByIndex(itemIndex);
                 return;
             case method:

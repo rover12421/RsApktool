@@ -6,4 +6,5 @@ include 'brut.j.common',
   'brut.apktool.smali:baksmali',
   'brut.apktool.smali:smali',
   'brut.apktool:apktool-lib',
-  'brut.apktool:apktool-cli'
+  'brut.apktool:apktool-cli',
+  'complile.common'

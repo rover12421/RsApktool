@@ -129,6 +129,7 @@ public class Androlib {
             if (in.containsDir("libs")) {
                 in.copyToDir(outDir, "libs");
             }
+           
 		} catch (DirectoryException ex) {
 			throw new AndrolibException(ex);
 		}
