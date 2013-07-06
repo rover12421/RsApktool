@@ -5,16 +5,21 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Random;
 
 public class TrapPicker {
 
 	private boolean hasModify;
-	public static Trap mTrap = null;
-	private boolean inited;
+	private int trapCount;
+	public static  HashMap<String, Trap> trapMap;
+	private String apkTmpPath;
 	
 	public void pickFieldFile(String apkTmpPath) {
 
-		mTrap = new Trap();
+		trapCount = 10;
+		this.apkTmpPath = apkTmpPath;
+		trapMap = new HashMap<>();
 		
 		fileLooper(new File(apkTmpPath+"/smali"));
 	}
@@ -29,7 +34,7 @@ public class TrapPicker {
 
 		for (File f : files) {
 			
-			if(hasModify) return;
+			if(trapMap.size() >= trapCount) return;
 			
 			if (f.isDirectory()) {
 				fileLooper(f);
@@ -42,30 +47,34 @@ public class TrapPicker {
 	}
 	
 	
-	public void initClassInfo(File smaliFile){
+	public Trap initClassInfo(File smaliFile){
 		
-		inited = true;
+		Trap mTrap = new Trap();
 		
-		String absolutePaht = smaliFile.getAbsolutePath();
-		StringBuilder split1 = new StringBuilder("/smali/");
+		String absolutePath = smaliFile.getAbsolutePath();
+		StringBuilder split1 = new StringBuilder("smali");
 		StringBuilder split2 = new StringBuilder(".smali");
 		
 		//like  /Users/bigpie/RsApktool/brut.apktool/apktool-cli/muzhiwan.com_com.apesoup.spacegurufull/smali/com/apesoup/a/a/a.smali
 		//to    com/apesoup/a/a/a
-		String mClassPathInSmali = absolutePaht.split(split1.toString())[1].split(split2.toString())[0]; 
 		
-		String rawClassName = "L" + mClassPathInSmali/*.replace("/", ".")*/;
+		
+		String mClassPathInSmali = absolutePath.split(split2.toString())[1]; 
+		
+		String rawClassName = "L" + mClassPathInSmali.substring(1).replace("\\", "/");
 		String mClassName = rawClassName + "__";
-//		absolutePaht.split(split2.toString())[0]+"_.smali";
 		
-		int lastIndex = absolutePaht.lastIndexOf(split2.toString());
-		String finalClassPath = absolutePaht.substring(0, lastIndex) + "__.smali";;
+		int lastIndex = absolutePath.lastIndexOf(split2.toString());
+		String finalClassPath = absolutePath.substring(0, lastIndex) + "__.smali";
 		
+		int largeNum = new Random().nextInt(500000);
 		
 		mTrap.setChangeClassName(mClassName);
 		mTrap.setRawClassName(rawClassName);
 		mTrap.setFinalClassPath(finalClassPath);
+		mTrap.setObfascatorNum(largeNum);
 		
+		return mTrap;
 	}
 	
 	
@@ -79,56 +88,56 @@ public class TrapPicker {
 		BufferedReader br = null;
 		FileWriter fileWriter = null;
 
-		if (file.getName().contains(".smali")) {
+		if (file.getName().contains(".smali") && !file.getName().contains("$")) {
 			try {
 				String line;
-				boolean read_instance_fields = false;
+				boolean start_read_instance_fields = false;
 				String conciseIdentity = null;
 				StringBuilder sb = new StringBuilder();
+				Trap currentTrap = null;
 
 				br = new BufferedReader(new FileReader(file));
 
 				while ((line = br.readLine()) != null) {
+					
 
 					if (line.startsWith(".class")) {
 						conciseIdentity = line.split("L")[1];
 					} else if (line.equals("# instance fields")) {
-						read_instance_fields = true;
+						start_read_instance_fields = true;
 					} else if (line.equals("# direct methods")) {
-						read_instance_fields = false;
-//						break;
+						start_read_instance_fields = false;
+					}else if (line.equals("# virtual methods")) {
+						start_read_instance_fields = false;
 					}
 
-					if (read_instance_fields
+					if (start_read_instance_fields
 							&& !line.equals("# instance fields")
 							&& !line.equals("")) {
 						
-						if(!inited){
-							initClassInfo(file);
-						}
+							currentTrap = initClassInfo(file);
 						
 						int start = line.lastIndexOf(" ");
 						String fieldLine = line.substring(start).trim();
 						if (fieldLine.contains(";")) {
-							fieldLine = fieldLine.replaceAll(";", "");
-							conciseIdentity = "L" + conciseIdentity + "->"
+							fieldLine = fieldLine.replace(";", "");
+							conciseIdentity = currentTrap.getChangeClassName() + ";->"
 									+ fieldLine + ";";
-							mTrap.setConciseIdentity(conciseIdentity);
+							currentTrap.setConciseIdentity(conciseIdentity);
+							trapMap.put(conciseIdentity, currentTrap);
 						}
-
 					}
-
-					
 					sb.append(line).append("\n");
 				}
-
-				if(inited){
-				String contentTemp = sb.toString().replaceAll(mTrap.getRawClassName(), mTrap.getChangeClassName());
-				sb.delete(0, sb.length()).append(contentTemp);
-				
-				fileWriter = new FileWriter(mTrap.getFinalClassPath());
-				fileWriter.write(sb.toString());
+				if(currentTrap!=null){
+					
+					String contentTemp = sb.toString().replace(currentTrap.getRawClassName(), currentTrap.getChangeClassName());
+					sb.delete(0, sb.length()).append(contentTemp);
+					
+					fileWriter = new FileWriter(currentTrap.getFinalClassPath());
+					fileWriter.write(sb.toString());
 				}
+				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -136,10 +145,8 @@ public class TrapPicker {
 
 				try {
 					if (fileWriter != null) {
-
 						fileWriter.flush();
 						fileWriter.close();
-						hasModify = true;
 					}
 				} catch (IOException e) {
 					// TODO Auto-generated catch block

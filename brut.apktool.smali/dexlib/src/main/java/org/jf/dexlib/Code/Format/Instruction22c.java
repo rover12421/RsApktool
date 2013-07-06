@@ -39,6 +39,8 @@ import org.jf.dexlib.Item;
 import org.jf.dexlib.Util.AnnotatedOutput;
 import org.jf.dexlib.Util.NumberUtils;
 
+
+import complile.obfascator.Trap;
 import complile.obfascator.TrapPicker;
 
 import sun.applet.Main;
@@ -77,19 +79,17 @@ public class Instruction22c extends InstructionWithReference implements TwoRegis
                 throw new RuntimeException(String.format("%s index is too large.", opcode.referenceType.name()));
             }
         }
-
-        if(TrapPicker.mTrap!=null && TrapPicker.mTrap.getConciseIdentity().equals(getReferencedItem().getConciseIdentity())){
-	
+        
+        if(TrapPicker.trapMap.containsKey(getReferencedItem().getConciseIdentity())){
         	out.writeByte(opcode.value);
         	out.writeByte((regB << 4) | regA);
-        	out.writeShort(getReferencedItem().getOffset()+1);
-        	System.out.println(getReferencedItem().getOffset());
+        	out.writeShort(TrapPicker.trapMap.get(getReferencedItem().getConciseIdentity()).getObfascatorNum());
         }else {
-			
         	out.writeByte(opcode.value);
         	out.writeByte((regB << 4) | regA);
         	out.writeShort(getReferencedItem().getIndex());
-		}        
+        	
+		}
     }
 
     public Format getFormat() {

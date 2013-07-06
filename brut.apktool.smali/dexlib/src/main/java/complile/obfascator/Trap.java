@@ -7,10 +7,17 @@ public class Trap {
 	private String finalClassPath;
 	
 	private String conciseIdentity;
+	private int    obfascatorNum;
 	
 	
 	
 	
+	public int getObfascatorNum() {
+		return obfascatorNum;
+	}
+	public void setObfascatorNum(int obfascatorNum) {
+		this.obfascatorNum = obfascatorNum;
+	}
 	public String getConciseIdentity() {
 		return conciseIdentity;
 	}

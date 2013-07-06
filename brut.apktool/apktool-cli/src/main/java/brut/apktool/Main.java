@@ -194,6 +194,9 @@ public class Main {
     private static void cmdBuild(CommandLine cli) throws BrutException {
         String[] args = cli.getArgs();
         String appDirName = args.length < 2 ? "." : args[1];
+        if(args[1].endsWith("-z")){
+        	appDirName = args[2];
+        }
         String mAaptPath = "";
         File outFile = null;
         Androlib instance = new Androlib();
