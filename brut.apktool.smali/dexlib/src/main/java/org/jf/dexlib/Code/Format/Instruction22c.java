@@ -43,7 +43,7 @@ import org.jf.dexlib.Util.NumberUtils;
 import complile.obfascator.Trap;
 import complile.obfascator.TrapPicker;
 
-import sun.applet.Main;
+//import sun.applet.Main;
 
 public class Instruction22c extends InstructionWithReference implements TwoRegisterInstruction,
         InstructionWithJumboVariant {
