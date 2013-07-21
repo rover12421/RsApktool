@@ -19,7 +19,7 @@ public class TrapPicker {
 
 		trapCount = 10;
 		this.apkTmpPath = apkTmpPath;
-		trapMap = new HashMap<>();
+		trapMap = new HashMap<String, Trap>();
 		
 		fileLooper(new File(apkTmpPath+"/smali"));
 	}

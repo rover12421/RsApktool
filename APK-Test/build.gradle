@@ -1,3 +1,5 @@
 dependencies {
+	compile project(':brut.apktool:apktool-cli')
+	
     testCompile group: 'junit', name: 'junit', version: '4.+'
 }

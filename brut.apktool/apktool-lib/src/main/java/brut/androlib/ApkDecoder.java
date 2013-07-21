@@ -16,6 +16,16 @@
 
 package brut.androlib;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+
 import brut.androlib.err.InFileNotFoundException;
 import brut.androlib.err.OutDirExistsException;
 import brut.androlib.res.AndrolibResources;
@@ -26,12 +36,6 @@ import brut.common.BrutException;
 import brut.directory.DirectoryException;
 import brut.directory.ZipExtFile;
 import brut.util.OS;
-import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.zip.ZipEntry;
 
 /**
  * @author Ryszard Wiśniewski <brut.alll@gmail.com>
@@ -80,6 +84,11 @@ public class ApkDecoder {
 			throw new AndrolibException(ex);
 		}
 		outDir.mkdirs();
+		
+		if (mApkFile.getAbsolutePath().endsWith(".dex")) {
+			mAndrolib.decodeSourcesSmali(mApkFile, outDir, mDebug, mDebugLinePrefix, mBakDeb);
+			return;
+		}
 
 		if (hasSources()) {
 			switch (mDecodeSources) {

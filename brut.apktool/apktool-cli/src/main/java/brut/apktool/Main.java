@@ -148,13 +148,17 @@ public class Main {
             decoder.setFrameworkDir(cli.getOptionValue("p"));
         }
         if (cli.hasOption("o") || cli.hasOption("output")) {
-            decoder.setOutDir(new File(cli.getOptionValue("o")));
+        	outDir = new File(cli.getOptionValue("o"));
+            decoder.setOutDir(outDir);
         } else {
 
-            // make out folder manually using name of apk
+            // make out folder manually using $name+'_out' of apk,dex,zip
             String outName = apkName;
-            outName = outName.endsWith(".apk") ? outName.substring(0,
-                    outName.length() - 4) : outName + ".out";
+            outName = (  outName.endsWith(".apk") 
+            		  || outName.endsWith(".zip")
+            		  || outName.endsWith(".dex")) 
+            		  ? outName.substring(0, outName.length() - 4) + "_out"
+            	      : outName + "_out";
 
             // make file from path
             outName = new File(outName).getName();

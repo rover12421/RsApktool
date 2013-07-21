@@ -217,9 +217,11 @@ public class Androlib {
 		// options.setIndent(4);
 		Yaml yaml = new Yaml(options);
 
-		FileWriter writer = null;
+//		FileWriter writer = null;
+		Writer writer = null;
 		try {
-			writer = new FileWriter(new File(mOutDir, "apktool.yml"));
+//			writer = new FileWriter(new File(mOutDir, "apktool.yml"));
+			writer = new OutputStreamWriter(new FileOutputStream(new File(mOutDir, "apktool.yml")),"UTF-8");
 			yaml.dump(meta, writer);
 		} catch (IOException ex) {
 			throw new AndrolibException(ex);
