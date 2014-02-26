@@ -1,3 +1,6 @@
+
+## 该项目已暂停,请移步:[ShakaApktool](https://github.com/rover12421/ShakaApktool)
+
 # RsApktool #
 
 这个版本的Apktool将在原Apktool上修改,将对大部分反编译回编译异常问题进行容错处理.
